@@ -1,0 +1,13 @@
+# Ignore everything
+*
+
+# Allow gitignore
+!.gitignore
+
+# Allow specific files
+!README.md
+!constraint.xdc
+
+# Allow a folder and its files
+!src/
+!src/*.v
