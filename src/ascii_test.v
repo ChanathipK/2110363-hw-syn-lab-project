@@ -13,7 +13,8 @@ module ascii_test(
     output reg [11:0] rgb,
     input wire [7:0] data,
     input wire newdata,
-    input wire baud
+    input wire baud,
+    input wire reset
     );
     
     reg [6:0] showdata;
@@ -45,9 +46,9 @@ module ascii_test(
             rgb = 12'h000;      // blank
         else
             if(ascii_bit_on)
-                rgb = 12'h00F;  // blue letters
+                rgb = 12'h99F;  // blue letters
             else
-                rgb = 12'hFFF;  // white background
+                rgb = 12'h888;  // white background
    //##################################### additional logic #################################################//
    reg [4:0] x_letter;
    reg [1:0] y_letter;
@@ -63,15 +64,37 @@ module ascii_test(
     y_letter = 0;
     x_pointer = 0;
     y_pointer = 0;
-//        for (i = 0; i < 4; i = i + 1) begin
-//            for (j = 0; j < 32; j = j + 1) begin
-//                memory[i][j] = (7'h31 + i) & (7'b1111111); // Fill with sequential ASCII characters
-//            end
-//        end
+    for (i = 0; i < 4; i = i + 1) begin
+            for (j = 0; j < 32; j = j + 1) begin
+                memory[i][j] <= 47; // Fill with sequential ASCII characters
+            end
+        end    
     end
    
 //   // Memory write logic (baud clock)
-    always @(posedge newdata) begin
+always @(posedge reset or posedge newdata ) begin
+    if (reset) begin
+        x_pointer <= 0;
+        y_pointer <= 0;
+        for (i = 0; i < 4; i = i + 1) begin
+            for (j = 0; j < 32; j = j + 1) begin
+                memory[i][j] <= 47; // Fill with sequential ASCII characters
+            end
+        end    
+    end else if (newdata) begin
+        if (data[6:0] == 13) begin
+            x_pointer <= 0;
+            y_pointer <= (y_pointer + 1) % 4;
+        end else if (data[6:0] == 45) begin /////////
+            if(x_pointer == 0) begin
+                  x_pointer = 31;
+                  y_pointer = y_pointer-1;
+                  memory[y_pointer][x_pointer] = 47; //////////////
+            end else begin
+                x_pointer = x_pointer - 1;
+                memory[y_pointer][x_pointer] = 47; //////////////
+            end
+        end else begin
             memory[y_pointer][x_pointer] <= data[6:0];
             if (x_pointer == 31) begin
                 x_pointer <= 0;
@@ -79,7 +102,10 @@ module ascii_test(
             end else begin
                 x_pointer <= x_pointer + 1;
             end
+        end
     end
+end
+
 
     integer count;
     // Memory read logic (clk clock)    
@@ -100,7 +126,5 @@ module ascii_test(
         count <= count + 1;  // Increment count if not yet 7
     end
     end
-
-  
-
+ 
 endmodule
